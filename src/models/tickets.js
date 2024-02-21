@@ -229,14 +229,24 @@ const getTickets = async ({ data }) => {
     const connection = await pool.getConnection()
 
     if(type_supervisor == "ADM"){
-      let sql = `SELECT tickets.id_ticket, chiefs.id_boss, chiefs.fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket , tickets.date_created 
+      let sql = `SELECT tickets.id_ticket, chiefs.id_boss, chiefs.fullname AS chief_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
       FROM tickets
       INNER JOIN chiefs ON tickets.id_supervisor = chiefs.id_boss
       INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
       INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`
+      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
       let [raffle] = await connection.execute(sql,[id_supervisor , type_supervisor])
   
+      // let sqlSeller = `SELECT tickets.id_ticket, sellers.id_seller, sellers.fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+      // FROM tickets
+      // INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
+      // INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+      // INNER JOIN clients ON tickets.id_client = clients.id_client
+      // WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`
+      // let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor , type_supervisor])
+
+      // console.log(raffleSellers)
+
       if (raffle.length > 0) {
         msg = {
           status: true,
@@ -259,6 +269,53 @@ const getTickets = async ({ data }) => {
           status: true,
           message: "Tickets found",
           data: raffle,
+          code: 200
+        }
+      }
+    }
+
+    connection.release()
+
+    return msg
+  } catch (err) {
+    let msg = {
+      status: false,
+      message: "Something went wrong...",
+      code: 500,
+      error: err,
+    }
+    return msg
+  }
+}
+
+const getTicketSeller = async ({ data }) => {
+  try {
+    let msg = {
+      status: false,
+      message: "Tickets not found",
+      code: 404
+    }
+
+    const connection = await pool.getConnection()
+
+    if(type_supervisor == "ADM"){
+
+      let sqlSeller = `SELECT tickets.id_ticket, sellers.id_boss, sellers.id_seller, sellers.fullname AS seller_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+      FROM tickets
+      INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
+      INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+      INNER JOIN clients ON tickets.id_client = clients.id_client
+      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
+
+      let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor , type_supervisor])
+
+      // console.log(raffleSellers)
+
+      if (raffleSellers.length > 0) {
+        msg = {
+          status: true,
+          message: "Tickets found",
+          data: raffleSellers,
           code: 200
         }
       }
@@ -634,6 +691,7 @@ module.exports = {
   regTicketsPayment,
 
   getTickets,
+  getTicketSeller,
   getPayments,
 
   activationTicket,

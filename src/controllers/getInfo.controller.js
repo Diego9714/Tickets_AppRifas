@@ -22,6 +22,16 @@ controller.getTickets = async (req, res) => {
   }
 }
 
+controller.getTicketSeller = async (req, res) => {
+  try {
+    const data = { id_supervisor , type_supervisor } = req.params
+    const ticket  = await Raffle.getTicketSeller(data)
+    res.status(ticket.code).json(ticket)
+  } catch (err) {
+    res.status(500).json({ error: "Error al realizar la consulta" })
+  }
+}
+
 controller.getPayments = async (req, res) => {
     try {
       const data = { id_ticket } = req.params
