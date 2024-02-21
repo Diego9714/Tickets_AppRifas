@@ -236,16 +236,6 @@ const getTickets = async ({ data }) => {
       INNER JOIN clients ON tickets.id_client = clients.id_client
       WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
       let [raffle] = await connection.execute(sql,[id_supervisor , type_supervisor])
-  
-      // let sqlSeller = `SELECT tickets.id_ticket, sellers.id_seller, sellers.fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
-      // FROM tickets
-      // INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
-      // INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
-      // INNER JOIN clients ON tickets.id_client = clients.id_client
-      // WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`
-      // let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor , type_supervisor])
-
-      // console.log(raffleSellers)
 
       if (raffle.length > 0) {
         msg = {
@@ -256,12 +246,13 @@ const getTickets = async ({ data }) => {
         }
       }
     }else if(type_supervisor == "VED"){
-      let sql = `SELECT tickets.id_ticket, sellers.id_seller, sellers.fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+      let sql = `SELECT tickets.id_ticket, sellers.id_seller, sellers.fullname AS seller_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
       FROM tickets
       INNER JOIN sellers ON tickets.id_supervisor = sellers.id_seller
       INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
       INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`
+      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
+
       let [raffle] = await connection.execute(sql,[id_supervisor , type_supervisor])
   
       if (raffle.length > 0) {
