@@ -296,9 +296,8 @@ const getTicketSeller = async ({ data }) => {
       INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
       INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
       INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
-
-      let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor , type_supervisor])
+      WHERE sellers.id_boss = ?;`;
+      let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor ])
 
       // console.log(raffleSellers)
 
@@ -316,6 +315,7 @@ const getTicketSeller = async ({ data }) => {
 
     return msg
   } catch (err) {
+    console.log(err)
     let msg = {
       status: false,
       message: "Something went wrong...",
