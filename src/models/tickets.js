@@ -326,6 +326,52 @@ const getTicketSeller = async ({ data }) => {
   }
 }
 
+const getTicketClient = async ({ data }) => {
+  try {
+    let msg = {
+      status: false,
+      message: "Clients not found",
+      code: 404
+    }
+
+    const connection = await pool.getConnection()
+
+
+    let sqlClient = `SELECT tickets.id_ticket,raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+    FROM tickets
+    INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
+    INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+    INNER JOIN clients ON tickets.id_client = clients.id_client
+    WHERE tickets.id_raffle = ?;`;
+    let [raffleClient] = await connection.execute(sqlClient,[id_raffle])
+
+    // console.log(raffleClient)
+
+    if (raffleClient.length > 0) {
+      msg = {
+        status: true,
+        message: "Clients found",
+        data: raffleClient,
+        code: 200
+      }
+    }
+    
+
+    connection.release()
+
+    return msg
+  } catch (err) {
+    console.log(err)
+    let msg = {
+      status: false,
+      message: "Something went wrong...",
+      code: 500,
+      error: err,
+    }
+    return msg
+  }
+}
+
 // Activation/desabled Tickets
 const activationTicket = async ({ data }) => {
   try {
@@ -683,6 +729,7 @@ module.exports = {
 
   getTickets,
   getTicketSeller,
+  getTicketClient,
   getPayments,
 
   activationTicket,
