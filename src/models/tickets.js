@@ -339,7 +339,6 @@ const getTicketClient = async ({ data }) => {
 
     let sqlClient = `SELECT tickets.id_ticket,raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
     FROM tickets
-    INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
     INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
     INNER JOIN clients ON tickets.id_client = clients.id_client
     WHERE tickets.id_raffle = ?;`;
