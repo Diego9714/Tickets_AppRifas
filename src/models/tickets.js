@@ -189,6 +189,7 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
       SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
       FROM tickets
       INNER JOIN clients ON tickets.id_client = clients.id_client
+<<<<<<< HEAD
       WHERE tickets.id_raffle = ? AND FIND_IN_SET(?, REPLACE(REPLACE(tickets.tickets_sold, '[', ''), ']', ''))
     `;
     let [matchingTickets] = await connection.execute(sql, [id_raffle ,number_ticket])
@@ -199,6 +200,20 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
         message: "Tickets found",
         info : matchingTickets,
         code: 200
+=======
+      WHERE sellers.id_boss = ?;`;
+      let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor ])
+
+      // console.log(raffleSellers)
+
+      if (raffleSellers.length > 0) {
+        msg = {
+          status: true,
+          message: "Tickets found",
+          data: raffleSellers,
+          code: 200
+        }
+>>>>>>> 75cd8af633595637d32b95e6ba8135e373a5c232
       }
     }
   
@@ -207,6 +222,54 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
     return msg
   } catch (err) {
     console.log(err)
+<<<<<<< HEAD
+=======
+    let msg = {
+      status: false,
+      message: "Something went wrong...",
+      code: 500,
+      error: err,
+    }
+    return msg
+  }
+}
+
+const getTicketClient = async ({ data }) => {
+  try {
+    let msg = {
+      status: false,
+      message: "Clients not found",
+      code: 404
+    }
+
+    const connection = await pool.getConnection()
+
+
+    let sqlClient = `SELECT tickets.id_ticket,raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+    FROM tickets
+    INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+    INNER JOIN clients ON tickets.id_client = clients.id_client
+    WHERE tickets.id_raffle = ?;`;
+    let [raffleClient] = await connection.execute(sqlClient,[id_raffle])
+
+    // console.log(raffleClient)
+
+    if (raffleClient.length > 0) {
+      msg = {
+        status: true,
+        message: "Clients found",
+        data: raffleClient,
+        code: 200
+      }
+    }
+    
+
+    connection.release()
+
+    return msg
+  } catch (err) {
+    console.log(err)
+>>>>>>> 75cd8af633595637d32b95e6ba8135e373a5c232
     let msg = {
       status: false,
       message: "Something went wrong...",
@@ -557,6 +620,11 @@ module.exports = {
   regTicketsPayment,
 
   getTickets,
+<<<<<<< HEAD
+=======
+  getTicketSeller,
+  getTicketClient,
+>>>>>>> 75cd8af633595637d32b95e6ba8135e373a5c232
   getPayments,
 
   activationTicket,

@@ -14,8 +14,13 @@ const PG_NAME                     = process.env._NAME
 // Users
 const GET_TICKETS                 = process.env.GET_TICKETS
 const GET_PAYMENTS                = process.env.GET_PAYMENTS
+<<<<<<< HEAD
 
 const DETAILED_TICKET             = process.env.DETAILED_TICKET
+=======
+const GET_TICKETS_SELLERS         = process.env.GET_TICKETS_SELLERS
+const GET_TICKETS_CLIENTS         = process.env.GET_TICKETS_CLIENTS
+>>>>>>> 75cd8af633595637d32b95e6ba8135e373a5c232
 
 const REGISTER_TICKET             = process.env.REGISTER_TICKET
 const REGISTER_PAYMENT            = process.env.REGISTER_PAYMENT
@@ -30,5 +35,9 @@ module.exports = {
   // Database
   PG_HOST, PG_USER, PG_PASS, PG_NAME,
   // Clients
+<<<<<<< HEAD
   GET_TICKETS, GET_PAYMENTS, REGISTER_TICKET , REGISTER_PAYMENT , ACTIVATE_TICKET, ACTIVATE_PAYMENT , DETAILED_TICKET
+=======
+  GET_TICKETS, GET_PAYMENTS, REGISTER_TICKET , REGISTER_PAYMENT , ACTIVATE_TICKET, ACTIVATE_PAYMENT , GET_TICKETS_SELLERS, GET_TICKETS_CLIENTS
+>>>>>>> 75cd8af633595637d32b95e6ba8135e373a5c232
  }
