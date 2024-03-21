@@ -18,18 +18,6 @@ controller.detailedTicket = async (req, res) => {
     const ticket  = await Raffle.getDetailedTickets(id_raffle , number_ticket)
     res.status(ticket.code).json(ticket)
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ error: "Error al realizar la consulta" })
-  }
-}
-
-controller.getTicketClient = async (req, res) => {
-  try {
-    const data = { id_raffle } = req.params
-    const ticket  = await Raffle.getTicketClient(data)
-    res.status(ticket.code).json(ticket)
-  } catch (err) {
-    console.log(err)
     res.status(500).json({ error: "Error al realizar la consulta" })
   }
 }
