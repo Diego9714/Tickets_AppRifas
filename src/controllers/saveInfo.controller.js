@@ -5,38 +5,23 @@ const controller = {}
 // ----- Save Ticket -----
 controller.regTicket = async (req, res) => {
   try {
-    const { tickets } = req.body
+    const ticket = { id_raffle, id_supervisor, type_supervisor, id_client, tickets_request, amount_total, type_payment, type_currency, banck, banck_reference, amount_paid } = req.body
 
-    const filterTicket = Object.keys(tickets)
+    const filterTicket = Object.keys(ticket)
 
     if (filterTicket.length > 0) {
-      const verify = await Raffle.verifyTicket(tickets)
+      const verify = await Raffle.verifyTicket(ticket)
       
-      const regTickets = verify.info.regTicket
-      const ticketsExists = verify.info.soldTickets
+      if (verify.code == 200) {
+        const regTickets = verify.registerTickets
 
-      let registeredTickets = []
-      let existingTickets = []
+        const processReg = await Raffle.regTicketsClient(ticket , regTickets)
+        console.log(processReg)
 
-      if (regTickets.length > 0) {
-        const userTicket = await Raffle.regTicketsClient(regTickets)
-
-        const registeredTickets = userTicket.completed.flatMap(ticket => ticket.ticket);
-        const existingTickets = ticketsExists.flatMap(ticket => ticket.tickets);
-        
-        res.status(userTicket.code).json({
-          message: "Registration process completed",
-          status: true,
-          code: userTicket.code,
-          registeredTickets: registeredTickets,
-          existingTickets: existingTickets.filter(ticket => !registeredTickets.includes(ticket)),
-          notRegisteredTickets: userTicket.notCompleted
-        });
-        
-        
+        return res.status(processReg.code).json(processReg)
       } 
       else {
-        res.status(500).json({ message: "All tickets are already registered", status: false, code: 500 })
+        return res.status(verify.code).json(verify)
       }
 
     } else {
@@ -51,21 +36,16 @@ controller.regTicket = async (req, res) => {
 // ----- Save Payment -----
 controller.regPayment = async (req, res) => {
   try {
-    const { payments } = req.body
+    const payments = { id_ticket,type_payment,type_currency,banck,banck_reference,amount_paid } = req.body
 
     const filterTicket = Object.keys(payments)
 
     if (filterTicket.length > 0) {
       const verify = await Raffle.verifyPayment(payments)
 
-      const regPayments = verify.info.regPayment
-      
-      if (regPayments.length > 0) {
-        const ticketPayment = await Raffle.regTicketsPayment(regPayments)
-
-        res.status(ticketPayment.code).json(ticketPayment);
-        
-        
+      if (verify.code == 200) {
+        const ticketPayment = await Raffle.regTicketsPayment(payments)
+        res.status(ticketPayment.code).json(ticketPayment)        
       } 
       else {
         res.status(500).json({ message: "All payments are already registered", status: false, code: 500 })

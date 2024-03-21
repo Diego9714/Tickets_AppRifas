@@ -1,174 +1,113 @@
 const pool = require('../utils/mysql.connect.js') 
 
 // ----- Verify Ticket -----
-const verifyTicket = async (tickets) => {
+const verifyTicket = async ({ ticket }) => {
   try {
+    let msg = {
+      status: false,
+      message: "Ticket already exists",
+      code: 500
+    };
+
     const connection = await pool.getConnection()
 
-    const regTicket = []
-    const soldTickets = []
+    const sql = `SELECT tickets_sold FROM raffles WHERE id_raffle = ? ;`;
+    const [rows] = await connection.execute(sql, [id_raffle])
 
-    for (const info of tickets) {
-      const { id_raffle , id_supervisor, type_supervisor, id_client, tickets_request , amount_total , type_payment , type_currency , banck , banck_reference , amount_paid } = info
+    if (rows.length > 0) {
+      const ticketSold = JSON.parse(rows[0].tickets_sold)
 
-      let sql = `SELECT tickets_sold FROM raffles WHERE id_raffle = ? ;`
-      const [rows] = await connection.execute(sql, [id_raffle])
+      if (ticketSold.length === 0) {
+        msg = {
+          status: true,
+          message: "New tickets for registration",
+          registerTickets: tickets_request,
+          code: 200
+        };
+      } else {
+        const newTickets =  tickets_request.filter(ticket => !ticketSold.includes(ticket))
 
-      if (rows.length > 0) {
-        const ticketSold = JSON.parse(rows[0].tickets_sold)
-
-        if (ticketSold == []) {
-          // No hay boletos vendidos, todos los solicitados son nuevos
-          regTicket.push({
-            id_raffle,
-            id_supervisor,
-            type_supervisor,
-            id_client,
-            tickets: tickets_request,
-            amount_total,
-            type_payment,
-            type_currency,
-            banck,
-            banck_reference,
-            amount_paid
-          })
-        } else {
-
-          const newTickets = tickets_request.filter(ticket => !ticketSold.includes(ticket))
-          const registeredTickets = tickets_request.filter(ticket => ticketSold.includes(ticket))
-
-          if (newTickets.length > 0) {
-            // Agregar solo los nuevos boletos que no están vendidos
-            regTicket.push({
-              id_raffle,
-              id_supervisor,
-              type_supervisor,
-              id_client,
-              tickets: newTickets,
-              amount_total,
-              type_payment,
-              type_currency,
-              banck,
-              banck_reference,
-              amount_paid
-            })
-          }
-
-          if (registeredTickets.length > 0) {
-            // Agregar los boletos ya registrados
-            soldTickets.push({
-              id_raffle,
-              id_supervisor,
-              type_supervisor,
-              id_client,
-              tickets: registeredTickets,
-              amount_total,
-              type_payment,
-              type_currency,
-              banck,
-              banck_reference,
-              amount_paid
-            })
-          }
+        if (newTickets.length > 0) {
+          msg = {
+            status: false,
+            message: "Tickets for registration",
+            code: 200,
+            registerTickets: newTickets
+          };
         }
-      }
-    }
-
-    const msg = {
-      status: true,
-      message: regTicket.length > 0 ? "New tickets found" : "All tickets already sold",
-      code: regTicket.length > 0 ? 200 : 404,
-      info: {
-        regTicket,
-        soldTickets
       }
     }
 
     connection.release()
 
-    return msg
+    return msg;
   } catch (err) {
-    let msg = {
+    console.error("Error:", err);
+    return {
       status: false,
       message: "Something went wrong...",
       code: 500,
-      error: err,
+      error: err
     }
-    return msg
   }
 }
 
 // ----- Save Ticket -----
-const regTicketsClient = async (regTickets) => {
+const regTicketsClient = async ({ticket}, regTickets) => {
   try {
-    const Ticketscompleted = []
-    const TicketsnotCompleted = []
+    let msg = {
+      status: false,
+      message: "Ticket not Registered",
+      code: 500
+    }
 
-    for(const info of regTickets){
-      const { id_raffle , id_supervisor, type_supervisor, id_client , tickets , amount_total , type_payment , type_currency , banck , banck_reference , amount_paid } = info
+    let status_ticket = 0
 
-      let status_ticket = 0
+    if (type_payment === "A cuotas") {
+      status_ticket = 2
+    } else if (type_payment === "Al contado") {
+      status_ticket = 1
+    } else if (type_payment === "Apartado") {
+      status_ticket = 3
+    }
 
-      if( type_payment === "A cuotas" ){
-        status_ticket = 2
-      } else if( type_payment === "Al contado" ){
-        status_ticket = 1
-      }
+    const fechaActual = new Date()
+    const date_created = fechaActual.toISOString().split('T')[0]
 
-      const fechaActual = new Date()
-      const date_created = fechaActual.toISOString().split('T')[0]
+    const connection = await pool.getConnection()
 
-      const connection = await pool.getConnection()
+    let sql0 = `SELECT tickets_sold FROM raffles WHERE id_raffle = ? ;`
+    const [rows] = await connection.execute(sql0, [id_raffle])
 
-      let sql0 = `SELECT tickets_sold FROM raffles WHERE id_raffle = ? ;`
-      const [rows] = await connection.execute(sql0, [id_raffle])
-
-      let sql = `INSERT INTO tickets (id_raffle, id_supervisor, type_supervisor, id_client, tickets_sold, amount_paid , amount_total, status_ticket, date_created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
-      const [result] = await connection.execute(sql, [id_raffle, id_supervisor, type_supervisor, id_client, tickets, amount_paid , amount_total, status_ticket, date_created])
-
-      if (result.affectedRows > 0) {
-
-        // Limpiar la cadena eliminando los corchetes al inicio y al final
-        let arrayTicket = rows[0].tickets_sold.replace(/^\[|\]$/g, '').split(',').map(Number);
-
-        let combinedArray = arrayTicket.concat(tickets);
-
-        const lastInsertId = result.insertId
-
-        let sql0 = `INSERT INTO payments (	 id_ticket,	type_payment,	type_currency,	banck,	banck_reference,	amount_paid,	status_payment,	date_payment) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?);`
-        await connection.execute(sql0, [ lastInsertId ,	type_payment,	type_currency,	banck,	banck_reference , amount_paid,1 ,	date_created])
-
-        sql = 'UPDATE raffles SET tickets_sold = ? WHERE id_raffle = ?';
-        await connection.execute(sql, [combinedArray , id_raffle]); 
-
-        Ticketscompleted.push({
-          status: true,
-          message: "Ticket registered successfully",
-          ticket: tickets 
-        })
-      } else {
-        TicketsnotCompleted.push({
-          status: false,
-          message: "Ticket not registered successfully",
-          ticket: tickets 
-        })
-      }
-
-      connection.release()
+    let combinedArray = JSON.parse(rows[0].tickets_sold)
     
+    let sql = `INSERT INTO tickets (id_raffle, id_supervisor, type_supervisor, id_client, tickets_sold, amount_paid, amount_total, status_ticket, date_created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+    const [result] = await connection.execute(sql, [id_raffle, id_supervisor, type_supervisor, id_client, JSON.stringify(regTickets), amount_paid, amount_total, status_ticket, date_created]);
+    
+    let lastInsertId = result.insertId;
+    
+    if (result.affectedRows > 0) {
+      combinedArray = combinedArray.concat(regTickets)
+
+      let sql0 = `INSERT INTO payments (id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+      await connection.execute(sql0, [lastInsertId, type_payment, type_currency, banck, banck_reference, amount_paid, 1, date_created]);
+
+      sql = 'UPDATE raffles SET tickets_sold = ? WHERE id_raffle = ?';
+      await connection.execute(sql, [JSON.stringify(combinedArray), id_raffle]); 
+
+      msg = {
+        status: true,
+        message: "Ticket registered successfully",
+        code: 200
+      }
     }
 
-    const msg = {
-      status: true,
-      message: "Ticket registration process completed",
-      code: 200,
-      completed: Ticketscompleted,
-      notCompleted: TicketsnotCompleted
-    }
-
+    connection.release()
+    
     return msg
 
   } catch (err) {
+    console.log(err)
     let msg = {
       status: false,
       message: "Something went wrong...",
@@ -179,46 +118,8 @@ const regTicketsClient = async (regTickets) => {
   }
 }
 
-// // ----- Get Tickets -----
-// const getTickets = async ({ data }) => {
-//   try {
-//     let msg = {
-//       status: false,
-//       message: "Tickets not found",
-//       code: 404
-//     }
-
-//     const connection = await pool.getConnection()
-
-//     let sql = `SELECT id_ticket, id_raffle, id_supervisor, type_supervisor, id_client , tickets_sold,amount_paid, amount_total, status_ticket, date_created FROM tickets WHERE id_raffle = ? ;`
-//     let [raffle] = await connection.execute(sql,[id_raffle])
-
-//     if (raffle.length > 0) {
-//       msg = {
-//         status: true,
-//         message: "Tickets found",
-//         data: raffle,
-//         code: 200
-//       }
-//     }
-    
-
-//     connection.release()
-
-//     return msg
-//   } catch (err) {
-//     let msg = {
-//       status: false,
-//       message: "Something went wrong...",
-//       code: 500,
-//       error: err,
-//     }
-//     return msg
-//   }
-// }
-
-// ----- Get Tickets -----
-const getTickets = async ({ data }) => {
+// Ver Tickets
+const getTickets = async (id_raffle) => {
   try {
     let msg = {
       status: false,
@@ -228,43 +129,37 @@ const getTickets = async ({ data }) => {
 
     const connection = await pool.getConnection()
 
-    if(type_supervisor == "ADM"){
-      let sql = `SELECT tickets.id_ticket, chiefs.id_boss, chiefs.fullname AS chief_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
-      FROM tickets
-      INNER JOIN chiefs ON tickets.id_supervisor = chiefs.id_boss
-      INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
-      INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
-      let [raffle] = await connection.execute(sql,[id_supervisor , type_supervisor])
+    let searchCant = `SELECT cant_tickets  FROM raffles WHERE id_raffle = ?`;
+    let [numbers] = await connection.execute(searchCant, [id_raffle]);
 
-      if (raffle.length > 0) {
+    let searchSold = `SELECT tickets_sold FROM tickets WHERE status_ticket = 1 AND id_raffle = ?;`;
+    let [sold] = await connection.execute(searchSold, [id_raffle]);
+
+    let searchSubs = `SELECT tickets_sold FROM tickets WHERE status_ticket = 2 AND id_raffle = ?;`;
+    let [subs] = await connection.execute(searchSubs, [id_raffle]);
+
+    let searchApart = `SELECT tickets_sold FROM tickets WHERE status_ticket = 3 AND id_raffle = ?;`;
+    let [apart] = await connection.execute(searchApart, [id_raffle]);
+
+    // Tickets Vendidos
+    let ticketSold = sold.length > 0 ? sold.flatMap(obj => JSON.parse(obj.tickets_sold)) : [];
+    // Tickets Abonados
+    let ticketSubscribed = subs.length > 0 ? subs.flatMap(obj => JSON.parse(obj.tickets_sold)) : [];
+    // Tickets Apartados
+    let ticketApart = apart.length > 0 ? apart.flatMap(obj => JSON.parse(obj.tickets_sold)) : [];
+
+    if (numbers.length > 0) {
         msg = {
-          status: true,
-          message: "Tickets found",
-          data: raffle,
-          code: 200
-        }
-      }
-    }else if(type_supervisor == "VED"){
-      let sql = `SELECT tickets.id_ticket, sellers.id_seller, sellers.fullname AS seller_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
-      FROM tickets
-      INNER JOIN sellers ON tickets.id_supervisor = sellers.id_seller
-      INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
-      INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
-
-      let [raffle] = await connection.execute(sql,[id_supervisor , type_supervisor])
+            status: true,
+            message: "Tickets found",
+            numbers_raffle: numbers[0].cant_tickets,
+            soldTickets: ticketSold,
+            subsTickets: ticketSubscribed,
+            apartTickets: ticketApart,
+            code: 200
+        };
+    }
   
-      if (raffle.length > 0) {
-        msg = {
-          status: true,
-          message: "Tickets found",
-          data: raffle,
-          code: 200
-        }
-      }
-    }
-
     connection.release()
 
     return msg
@@ -279,7 +174,8 @@ const getTickets = async ({ data }) => {
   }
 }
 
-const getTicketSeller = async ({ data }) => {
+// Ver Detalles Ticket
+const getDetailedTickets = async (id_raffle , number_ticket) => {
   try {
     let msg = {
       status: false,
@@ -289,33 +185,28 @@ const getTicketSeller = async ({ data }) => {
 
     const connection = await pool.getConnection()
 
-    if(type_supervisor == "ADM"){
-
-      let sqlSeller = `SELECT tickets.id_ticket, sellers.id_boss, sellers.id_seller, sellers.fullname AS seller_fullname, raffles.id_raffle, raffles.name_raffle, clients.id_client, clients.fullname AS client_fullname, clients.address, tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+    let sql = `
+      SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
       FROM tickets
-      INNER JOIN sellers ON tickets.id_supervisor = sellers.id_boss
-      INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
       INNER JOIN clients ON tickets.id_client = clients.id_client
-      WHERE tickets.id_supervisor = ? AND tickets.type_supervisor = ?;`;
+      WHERE tickets.id_raffle = ? AND FIND_IN_SET(?, REPLACE(REPLACE(tickets.tickets_sold, '[', ''), ']', ''))
+    `;
+    let [matchingTickets] = await connection.execute(sql, [id_raffle ,number_ticket])
 
-      let [raffleSellers] = await connection.execute(sqlSeller,[id_supervisor , type_supervisor])
-
-      // console.log(raffleSellers)
-
-      if (raffleSellers.length > 0) {
-        msg = {
-          status: true,
-          message: "Tickets found",
-          data: raffleSellers,
-          code: 200
-        }
+    if (matchingTickets.length > 0) {
+      msg = {
+        status: true,
+        message: "Tickets found",
+        info : matchingTickets,
+        code: 200
       }
     }
-
+  
     connection.release()
 
     return msg
   } catch (err) {
+    console.log(err)
     let msg = {
       status: false,
       message: "Something went wrong...",
@@ -346,6 +237,8 @@ const activationTicket = async ({ data }) => {
 
     if(montoAbonado < montoPagado){
       status_ticket = 2
+    }else if(montoAbonado == 0){
+      status_ticket = 3
     }
 
     let idRaffle = ticket[0].id_raffle
@@ -409,7 +302,6 @@ const activationTicket = async ({ data }) => {
           };
         }
       }
-
     }
 
     connection.release();
@@ -429,37 +321,31 @@ const activationTicket = async ({ data }) => {
 
 
 // ----- Verify Payment -----
-const verifyPayment = async (payments) => {
+const verifyPayment = async ({payments}) => {
   try {
-    const connection = await pool.getConnection()
-
-    const regPayment = []
-    const soldPayments = []
-
-    for (const info of payments) {
-      const { id_ticket , type_payment , type_currency , banck , banck_reference , amount_paid } = info
-
-      let sql = `SELECT amount_paid , amount_total , status_ticket FROM tickets WHERE id_ticket = ? ;`
-      const [rows] = await connection.execute(sql, [id_ticket])
-
-      if (rows.length > 0) {
-        
-        let montoPagado = rows[0].amount_paid
-        let monto_a_pagar = rows[0].amount_total
-        let status = rows[0].status_ticket
-
-        if(monto_a_pagar >= montoPagado && status == 2){
-          regPayment.push(info)
-        }
-      }
+    let msg = {
+      status: false,
+      message: "Payment already exists",
+      code: 500
     }
 
-    const msg = {
-      status: true,
-      message: regPayment.length > 0 ? "New payment found" : "These tickets have already been paidAll tickets already sold",
-      code: regPayment.length > 0 ? 200 : 404,
-      info: {
-        regPayment
+    const connection = await pool.getConnection()
+
+    let sql = `SELECT amount_paid , amount_total , status_ticket FROM tickets WHERE id_ticket = ? ;`
+    const [rows] = await connection.execute(sql, [id_ticket])
+
+    if (rows.length > 0) {
+      
+      let monto_a_pagar = rows[0].amount_paid
+      let montoPagado = rows[0].amount_total
+      let status = rows[0].status_ticket
+
+      if(montoPagado >= monto_a_pagar && status == 2){
+        msg = {
+          status: true,
+          message: "Payment for register",
+          code: 200
+        }
       }
     }
 
@@ -478,70 +364,57 @@ const verifyPayment = async (payments) => {
 }
 
 // ----- Save Payment -----
-const regTicketsPayment = async (regPayments) => {
+const regTicketsPayment = async ({payments}) => {
   try {
-    const Paymentscompleted = [];
-    const PaymentsnotCompleted = [];
-
-    for (const info of regPayments) {
-      const { id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid } = info;
-
-      const fechaActual = new Date();
-      const date_created = fechaActual.toISOString().split('T')[0];
-
-      const connection = await pool.getConnection();
-
-      let sql0 = `SELECT amount_paid , amount_total FROM tickets WHERE id_ticket = ?;`;
-      const [rows] = await connection.execute(sql0, [id_ticket]);
-
-      let montoAbonado = rows[0].amount_paid;
-      let montoPagado = rows[0].amount_total;
-
-      let nuevoMontoRecibido = montoAbonado + amount_paid;
-
-      if( type_payment === "A cuotas" && nuevoMontoRecibido == montoPagado){
-        status_ticket = 1
-      }
-      else if( type_payment === "A cuotas" ){
-        status_ticket = 2
-      } else if( type_payment === "Al contado" ){
-        status_ticket = 1
-      }
-
-      let sql = `INSERT INTO payments (id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
-      const [result] = await connection.execute(sql, [id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, 1, date_created]);
-
-      if (result.affectedRows > 0) {
-
-        sql = 'UPDATE tickets SET amount_paid = ? , status_ticket = ? WHERE id_ticket = ?;';
-        await connection.execute(sql, [nuevoMontoRecibido, status_ticket , id_ticket]);
-
-        Paymentscompleted.push({
-          status: true,
-          message: "Payment registered successfully",
-          amount: amount_paid
-        });
-      } else {
-        PaymentsnotCompleted.push({
-          status: false,
-          message: "Payment not registered successfully",
-          amount: amount_paid
-        });
-      }
-    
-
-      connection.release();
-
+    let msg = {
+      status: false,
+      message: "Payment not registered successfully",
+      code: 500
     }
 
-    const msg = {
-      status: true,
-      message: "Payment registration process completed",
-      code: 200,
-      completed: Paymentscompleted
-    };
+    const fechaActual = new Date();
+    const date_created = fechaActual.toISOString().split('T')[0];
 
-    return msg;
+    const connection = await pool.getConnection();
+
+    let sql0 = `SELECT amount_paid , amount_total FROM tickets WHERE id_ticket = ?;`;
+    const [rows] = await connection.execute(sql0, [id_ticket]);
+
+    let montoAbonado = rows[0].amount_paid;
+    let montoPagado = rows[0].amount_total;
+
+    let nuevoMontoRecibido = montoAbonado + amount_paid;
+
+    if( type_payment === "A cuotas" && nuevoMontoRecibido == montoPagado){
+      status_ticket = 1
+    }
+    else if( type_payment === "A cuotas" ){
+      status_ticket = 2
+    } else if( type_payment === "Al contado" ){
+      status_ticket = 1
+    }
+
+    let sql = `INSERT INTO payments (id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+    const [result] = await connection.execute(sql, [id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, 1, date_created]);
+
+    if (result.affectedRows > 0) {
+
+      sql = 'UPDATE tickets SET amount_paid = ? , status_ticket = ? WHERE id_ticket = ?;';
+      await connection.execute(sql, [nuevoMontoRecibido, status_ticket , id_ticket]);
+
+      msg = {
+        status: false,
+        message: "Payment registered successfully",
+        code: 200
+      }
+    }
+  
+
+    connection.release();
+
+
+
+    return msg
 
   } catch (err) {
     let msg = {
@@ -678,11 +551,12 @@ module.exports = {
   verifyTicket,
   regTicketsClient,
 
+  getDetailedTickets,
+
   verifyPayment,
   regTicketsPayment,
 
   getTickets,
-  getTicketSeller,
   getPayments,
 
   activationTicket,

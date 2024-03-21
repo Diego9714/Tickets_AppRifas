@@ -1,4 +1,4 @@
-const { GET_TICKETS , GET_PAYMENTS , REGISTER_TICKET , REGISTER_PAYMENT , ACTIVATE_TICKET , ACTIVATE_PAYMENT , GET_TICKETS_SELLERS } = require('../global/_var.js')
+const { GET_TICKETS , GET_PAYMENTS , REGISTER_TICKET , REGISTER_PAYMENT , ACTIVATE_TICKET , ACTIVATE_PAYMENT , DETAILED_TICKET } = require('../global/_var.js')
 
 // Dependencies
 const express = require('express')
@@ -10,10 +10,10 @@ const saveController = require('../controllers/saveInfo.controller.js')
 
 // Routes
 router.get(GET_TICKETS , dataController.getTickets)
-router.get(GET_TICKETS_SELLERS , dataController.getTicketSeller)
+router.get(DETAILED_TICKET , dataController.detailedTicket)
+
 router.post(REGISTER_TICKET , saveController.regTicket)
 router.post(ACTIVATE_TICKET , saveController.activateTicket)
-
 
 router.get(GET_PAYMENTS , dataController.getPayments)
 router.post(REGISTER_PAYMENT , saveController.regPayment)
