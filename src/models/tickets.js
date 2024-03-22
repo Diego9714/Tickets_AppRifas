@@ -186,7 +186,7 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
     const connection = await pool.getConnection()
 
     let sql = `
-      SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+      SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.phone , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
       FROM tickets
       INNER JOIN clients ON tickets.id_client = clients.id_client
       WHERE tickets.id_raffle = ? AND FIND_IN_SET(?, REPLACE(REPLACE(tickets.tickets_sold, '[', ''), ']', ''))
@@ -439,15 +439,42 @@ const getPayments = async ({ data }) => {
 
     const connection = await pool.getConnection()
 
-    let sql = `SELECT id_payment, id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment	FROM payments WHERE id_ticket = ? ;`
-    let [raffle] = await connection.execute(sql,[id_ticket])
+    let sqlSeller = `
+    SELECT payments.id_payment, payments.type_payment, payments.type_currency, payments.banck, payments.banck_reference, payments.amount_paid, payments.status_payment, payments.date_payment,
+    tickets.amount_total, sellers.fullname AS fullname_supervisor, clients.fullname AS fullname_client
+    FROM payments
+    INNER JOIN tickets ON payments.id_ticket = tickets.id_ticket
+    INNER JOIN sellers ON sellers.id_seller = tickets.id_supervisor
+    INNER JOIN clients ON tickets.id_client = clients.id_client
+    WHERE payments.id_ticket = ? AND tickets.type_supervisor = 'VED';
+    `;
 
-    if (raffle.length > 0) {
+    let [seller] = await connection.execute(sqlSeller, [id_ticket]);
+
+    let sqlAdmin = `
+    SELECT payments.id_payment, payments.type_payment, payments.type_currency, payments.banck, payments.banck_reference, payments.amount_paid, payments.status_payment, payments.date_payment,
+    tickets.amount_total, chiefs.fullname AS fullname_supervisor, clients.fullname AS fullname_client
+    FROM payments
+    INNER JOIN tickets ON payments.id_ticket = tickets.id_ticket
+    INNER JOIN chiefs ON chiefs.id_boss = tickets.id_supervisor
+    INNER JOIN clients ON tickets.id_client = clients.id_client
+    WHERE payments.id_ticket = ? AND tickets.type_supervisor = 'ADM';
+    `;
+    let [admin] = await connection.execute(sqlAdmin, [id_ticket]);
+
+    // Convertir los resultados en conjuntos para eliminar duplicados
+    let uniqueSeller = new Set(seller.map(JSON.stringify));
+    let uniqueAdmin = new Set(admin.map(JSON.stringify));
+
+    // Fusionar conjuntos y convertir de vuelta a arreglo
+    let uniquePayments = Array.from(new Set([...uniqueSeller, ...uniqueAdmin].map(JSON.parse)));
+
+    if (uniquePayments.length > 0) {
       msg = {
-        status: true,
-        message: "Payments found",
-        data: raffle,
-        code: 200
+          status: true,
+          message: "Payments found",
+          data: uniquePayments,
+          code: 200
       }
     }
     
