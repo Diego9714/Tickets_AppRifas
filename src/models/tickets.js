@@ -186,9 +186,12 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
     const connection = await pool.getConnection()
 
     let sql = `
-      SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.phone , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created 
+      SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.phone , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created,
+      raffles.price_tickets 
+      
       FROM tickets
       INNER JOIN clients ON tickets.id_client = clients.id_client
+      INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
       WHERE tickets.id_raffle = ? AND FIND_IN_SET(?, REPLACE(REPLACE(tickets.tickets_sold, '[', ''), ']', ''))
     `;
     let [matchingTickets] = await connection.execute(sql, [id_raffle ,number_ticket])
