@@ -89,6 +89,20 @@ const regTicketsClient = async ({ticket}, regTickets) => {
     if (result.affectedRows > 0) {
       combinedArray = combinedArray.concat(regTickets)
 
+      if(type_currency == "zelle"){
+        type_currency = "dolares"
+        banck = "Zelle"
+      }else if(type_currency == "CML"){
+        type_currency = "pesos"
+        banck = "Bancolombia"
+      }else if(type_currency == "bni"){
+        type_currency = "dolares"
+        banck = "Binance"
+      }else if(type_currency == "pay"){
+        type_currency = "dolares"
+        banck = "Paypal"
+      }
+
       let sql0 = `INSERT INTO payments (id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
       await connection.execute(sql0, [lastInsertId, type_payment, type_currency, banck, banck_reference, amount_paid, 1, date_created]);
 
@@ -187,8 +201,7 @@ const getDetailedTickets = async (id_raffle , number_ticket) => {
 
     let sql = `
       SELECT tickets.id_raffle , tickets.id_ticket, clients.id_client, clients.fullname AS client_fullname, clients.address , clients.phone , clients.sector , clients.state , clients.direction , tickets.tickets_sold, tickets.amount_paid, tickets.amount_total, tickets.status_ticket, tickets.date_created,
-      raffles.price_tickets 
-      
+      raffles.price_tickets
       FROM tickets
       INNER JOIN clients ON tickets.id_client = clients.id_client
       INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
@@ -395,6 +408,20 @@ const regTicketsPayment = async ({payments}) => {
       status_ticket = 2
     } else if( type_payment === "Al contado" ){
       status_ticket = 1
+    }
+
+    if(type_currency == "zelle"){
+      type_currency = "dolares"
+      banck = "Zelle"
+    }else if(type_currency == "CML"){
+      type_currency = "pesos"
+      banck = "Bancolombia"
+    }else if(type_currency == "bni"){
+      type_currency = "dolares"
+      banck = "Binance"
+    }else if(type_currency == "pay"){
+      type_currency = "dolares"
+      banck = "Paypal"
     }
 
     let sql = `INSERT INTO payments (id_ticket, type_payment, type_currency, banck, banck_reference, amount_paid, status_payment, date_payment) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
