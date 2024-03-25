@@ -471,7 +471,7 @@ const getPayments = async ({ data }) => {
 
     let sqlSeller = `
     SELECT payments.id_payment, payments.type_payment, payments.type_currency, payments.banck, payments.banck_reference, payments.amount_paid, payments.status_payment, payments.date_payment,
-    tickets.amount_total, sellers.fullname AS fullname_supervisor, clients.fullname AS fullname_client
+    tickets.amount_total, tickets.id_ticket, sellers.fullname AS fullname_supervisor, clients.fullname AS fullname_client
     FROM payments
     INNER JOIN tickets ON payments.id_ticket = tickets.id_ticket
     INNER JOIN sellers ON sellers.id_seller = tickets.id_supervisor
@@ -479,10 +479,11 @@ const getPayments = async ({ data }) => {
     WHERE payments.id_ticket = ? AND tickets.type_supervisor = 'VED';
     `;
 
+
     let [seller] = await connection.execute(sqlSeller, [id_ticket]);
 
     let sqlAdmin = `
-    SELECT payments.id_payment, payments.type_payment, payments.type_currency, payments.banck, payments.banck_reference, payments.amount_paid, payments.status_payment, payments.date_payment,
+    SELECT tickets.id_ticket , payments.id_payment, payments.type_payment, payments.type_currency, payments.banck, payments.banck_reference, payments.amount_paid, payments.status_payment, payments.date_payment,
     tickets.amount_total, chiefs.fullname AS fullname_supervisor, clients.fullname AS fullname_client
     FROM payments
     INNER JOIN tickets ON payments.id_ticket = tickets.id_ticket
