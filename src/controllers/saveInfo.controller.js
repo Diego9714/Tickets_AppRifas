@@ -45,8 +45,13 @@ controller.regPayment = async (req, res) => {
     if (filterTicket.length > 0) {
       const verify = await Raffle.verifyPayment(payments)
 
+      console.log(verify)
+
       if (verify.code == 200) {
         const ticketPayment = await Raffle.regTicketsPayment(payments)
+       
+        console.log(ticketPayment)
+
         res.status(ticketPayment.code).json(ticketPayment)        
       } 
       else {
