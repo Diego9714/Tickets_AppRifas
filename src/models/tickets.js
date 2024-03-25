@@ -624,7 +624,7 @@ const getReports = async ({ data }) => {
     // WHERE tickets.id_ticket = ?; `
 
     let sql = `
-    SELECT tickets.id_ticket, tickets.id_raffle , raffles.name_raffle , raffles.description_raffle ,  raffles.end_date AS date_raffle , 
+    SELECT tickets.id_ticket, tickets.id_raffle , raffles.name_raffle , raffles.description_raffle , raffles.img_awards , raffles.end_date AS date_raffle , 
     clients.fullname AS client_fullname , clients.address , clients.phone , 
     tickets.tickets_sold , raffles.price_tickets , tickets.amount_paid , tickets.amount_total ,  tickets.status_ticket,
     payments.id_payment, payments.type_payment, payments.type_currency , payments.banck , payments.banck_reference , payments.amount_paid AS amountPaid_payment , payments.date_payment 
