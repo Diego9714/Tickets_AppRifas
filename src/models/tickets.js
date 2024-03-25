@@ -603,6 +603,63 @@ const activationPayment = async ({ data }) => {
 }
 
 
+// ----- Get Report -----
+const getReports = async ({ data }) => {
+  try {
+    let msg = {
+      status: false,
+      message: "Report not generated",
+      code: 500
+    }
+
+    const connection = await pool.getConnection()
+
+    // let sql = `
+    // SELECT tickets.id_ticket, tickets.id_raffle , raffles.name_raffle , raffles.description_raffle ,  raffles.end_date AS date_raffle , 
+    // clients.fullname AS client_fullname , clients.address , clients.phone , 
+    // tickets.tickets_sold , raffles.price_tickets , tickets.amount_paid , tickets.amount_total ,  tickets.status_ticket 
+    // FROM tickets
+    // INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+    // INNER JOIN clients ON tickets.id_client = clients.id_client
+    // WHERE tickets.id_ticket = ?; `
+
+    let sql = `
+    SELECT tickets.id_ticket, tickets.id_raffle , raffles.name_raffle , raffles.description_raffle ,  raffles.end_date AS date_raffle , 
+    clients.fullname AS client_fullname , clients.address , clients.phone , 
+    tickets.tickets_sold , raffles.price_tickets , tickets.amount_paid , tickets.amount_total ,  tickets.status_ticket,
+    payments.id_payment, payments.type_payment, payments.type_currency , payments.banck , payments.banck_reference , payments.amount_paid AS amountPaid_payment , payments.date_payment 
+    FROM tickets
+    INNER JOIN raffles ON tickets.id_raffle = raffles.id_raffle
+    INNER JOIN clients ON tickets.id_client = clients.id_client
+    INNER JOIN payments ON tickets.id_ticket = payments.id_ticket
+    WHERE tickets.id_ticket = ?; `
+
+    let [report] = await connection.execute(sql, [id_ticket]);
+
+    if (report.length > 0) {
+      msg = {
+          status: true,
+          message: "Report generated",
+          data: report,
+          code: 200
+      }
+    }
+    
+
+    connection.release()
+
+    return msg
+  } catch (err) {
+    let msg = {
+      status: false,
+      message: "Something went wrong...",
+      code: 500,
+      error: err,
+    }
+    return msg
+  }
+}
+
 
 module.exports = {
   verifyTicket,
@@ -617,5 +674,7 @@ module.exports = {
   getPayments,
 
   activationTicket,
-  activationPayment
+  activationPayment,
+
+  getReports
 }
