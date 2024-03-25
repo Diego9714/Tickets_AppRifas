@@ -38,6 +38,8 @@ controller.regPayment = async (req, res) => {
   try {
     const payments = { id_ticket,type_payment,type_currency,banck,banck_reference,amount_paid } = req.body
 
+    console.log(payments)
+
     const filterTicket = Object.keys(payments)
 
     if (filterTicket.length > 0) {
